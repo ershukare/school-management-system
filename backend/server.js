@@ -11,7 +11,31 @@ app.use(express.json());
 
 const studentRoutes = require("./routes/studentRoutes");
 
+const teacherRoutes = require("./routes/teacherRoutes");
+
+const classRoutes = require("./routes/classRoutes");
+
+const subjectRoutes = require("./routes/subjectRoutes");
+
+const attendanceRoutes = require("./routes/attendanceRoutes");
+
+const examRoutes = require("./routes/examRoutes");
+
+const resultRoutes = require("./routes/resultRoutes");
+
 app.use("/api/students", studentRoutes);
+
+app.use("/api/teachers", teacherRoutes);
+
+app.use("/api/classes", classRoutes);
+
+app.use("/api/subjects", subjectRoutes);
+
+app.use("/api/attendance", attendanceRoutes);
+
+app.use("/api/exams", examRoutes);
+
+app.use("/api/results", resultRoutes);
 
 app.get("/", (req, res) => {
   res.json({
