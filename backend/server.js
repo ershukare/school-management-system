@@ -23,6 +23,14 @@ const examRoutes = require("./routes/examRoutes");
 
 const resultRoutes = require("./routes/resultRoutes");
 
+const feeRoutes = require("./routes/feeRoutes");
+
+const noticeRoutes = require("./routes/noticeRoutes");
+
+const teacherSubjectRoutes = require("./routes/teacherSubjectRoutes");
+
+const userRoutes = require("./routes/userRoutes");
+
 app.use("/api/students", studentRoutes);
 
 app.use("/api/teachers", teacherRoutes);
@@ -36,6 +44,14 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/exams", examRoutes);
 
 app.use("/api/results", resultRoutes);
+
+app.use("/api/fees", feeRoutes);
+
+app.use("/api/notices", noticeRoutes);
+
+app.use("/api/teacher-subjects", teacherSubjectRoutes);
+
+app.use("/api/users", userRoutes);
 
 app.get("/", (req, res) => {
   res.json({
