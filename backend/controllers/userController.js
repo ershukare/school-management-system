@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const bcrypt = require("bcryptjs");
 
 // GET all users
 const getUsers = (req, res) => {
@@ -42,7 +43,7 @@ const getUserById = (req, res) => {
 };
 
 // CREATE user
-const createUser = (req, res) => {
+const createUser = async (req, res) => {
   const { name, email, password, role } = req.body;
 
   if (!name || !email || !password || !role) {
@@ -51,50 +52,82 @@ const createUser = (req, res) => {
     });
   }
 
-  const sql =
-    "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)";
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  db.query(sql, [name, email, password, role], (err, result) => {
-    if (err) {
-      return res.status(500).json({
-        message: "Failed to create user",
-        error: err.message,
-      });
-    }
+    const sql =
+      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)";
 
-    res.status(201).json({
-      message: "User created successfully",
-      user_id: result.insertId,
+    db.query(
+      sql,
+      [name, email, hashedPassword, role],
+      (err, result) => {
+        if (err) {
+          return res.status(500).json({
+            message: "Failed to create user",
+            error: err.message,
+          });
+        }
+
+        res.status(201).json({
+          message: "User created successfully",
+          user_id: result.insertId,
+        });
+      }
+    );
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to hash password",
+      error: error.message,
     });
-  });
+  }
 };
 
 // UPDATE user
-const updateUser = (req, res) => {
+const updateUser = async (req, res) => {
   const { id } = req.params;
   const { name, email, password, role } = req.body;
 
-  const sql =
-    "UPDATE users SET name = ?, email = ?, password = ?, role = ? WHERE id = ?";
-
-  db.query(sql, [name, email, password, role, id], (err, result) => {
-    if (err) {
-      return res.status(500).json({
-        message: "Failed to update user",
-        error: err.message,
-      });
-    }
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        message: "User not found",
-      });
-    }
-
-    res.json({
-      message: "User updated successfully",
+  if (!name || !email || !password || !role) {
+    return res.status(400).json({
+      message: "Name, email, password and role are required",
     });
-  });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const sql =
+      "UPDATE users SET name = ?, email = ?, password = ?, role = ? WHERE id = ?";
+
+    db.query(
+      sql,
+      [name, email, hashedPassword, role, id],
+      (err, result) => {
+        if (err) {
+          return res.status(500).json({
+            message: "Failed to update user",
+            error: err.message,
+          });
+        }
+
+        if (result.affectedRows === 0) {
+          return res.status(404).json({
+            message: "User not found",
+          });
+        }
+
+        res.json({
+          message: "User updated successfully",
+        });
+      }
+    );
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to hash password",
+      error: error.message,
+    });
+  }
 };
 
 // DELETE user
