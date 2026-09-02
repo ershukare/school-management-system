@@ -31,6 +31,8 @@ const teacherSubjectRoutes = require("./routes/teacherSubjectRoutes");
 
 const userRoutes = require("./routes/userRoutes");
 
+const authRoutes = require("./routes/authRoutes");
+
 app.use("/api/students", studentRoutes);
 
 app.use("/api/teachers", teacherRoutes);
@@ -52,6 +54,8 @@ app.use("/api/notices", noticeRoutes);
 app.use("/api/teacher-subjects", teacherSubjectRoutes);
 
 app.use("/api/users", userRoutes);
+
+app.use("/api/auth", authRoutes);
 
 app.get("/", (req, res) => {
   res.json({
