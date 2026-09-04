@@ -1,0 +1,43 @@
+{
+  "app": {
+    "name": "Sirna Bulchiinsa Mana Barumsaa",
+    "dashboard": "Fuula Duraa",
+    "students": "Barattoota",
+    "teachers": "Barsiisota",
+    "classes": "Kutaa Barnootaa",
+    "subjects": "Barnoota",
+    "attendance": "Argama",
+    "exams": "Qormaata",
+    "results": "Bu'aawwan",
+    "fees": "Kaffaltii",
+    "notices": "Beeksisawwan",
+    "users": "Fayyadamtoota",
+    "login": "Seeni",
+    "logout": "Ba'i",
+    "save": "Olkaa'i",
+    "update": "Haaromsi",
+    "delete": "Haqi",
+    "search": "Barbaadi",
+    "cancel": "Dhiisi"
+  },
+
+  "student": {
+    "title": "Barattoota",
+    "subtitle": "Barattoota mana barumsaa bulchi",
+    "add": "Barataa Dabali",
+    "loading": "Barattoonni fe'amaa jiru...",
+    "noStudents": "Barataan hin argamne",
+    "code": "Koodii Barataa",
+    "firstName": "Maqaa Duraa",
+    "lastName": "Maqaa Abbaa",
+    "gender": "Saala",
+    "phone": "Bilbila",
+    "address": "Teessoo",
+    "actions": "Gochaalee"
+  },
+
+  "language": {
+    "oromo": "Afaan Oromoo",
+    "english": "English"
+  }
+}

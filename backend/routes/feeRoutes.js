@@ -3,6 +3,7 @@ const express = require("express");
 const {
   getFees,
   getFeeById,
+  getStudentFeeSummary,
   createFee,
   updateFee,
   deleteFee,
@@ -12,6 +13,9 @@ const router = express.Router();
 
 // Get all fees
 router.get("/", getFees);
+
+// Get fee summary for one student
+router.get("/student/:student_id/summary", getStudentFeeSummary);
 
 // Get one fee
 router.get("/:id", getFeeById);

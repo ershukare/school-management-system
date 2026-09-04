@@ -7,7 +7,6 @@ const getFees = (req, res) => {
   db.query(sql, (err, results) => {
     if (err) {
       console.error(err);
-
       return res.status(500).json({
         message: "Failed to fetch fees",
         error: err.message,
@@ -27,7 +26,6 @@ const getFeeById = (req, res) => {
   db.query(sql, [id], (err, results) => {
     if (err) {
       console.error(err);
-
       return res.status(500).json({
         message: "Failed to fetch fee",
         error: err.message,
@@ -44,6 +42,53 @@ const getFeeById = (req, res) => {
   });
 };
 
+// Get fee summary for one student
+const getStudentFeeSummary = (req, res) => {
+  const { student_id } = req.params;
+
+  const sql = `
+    SELECT
+      student_id,
+      COUNT(*) AS payment_records,
+      COUNT(
+        DISTINCT CONCAT(
+          COALESCE(payment_year, ''),
+          '-',
+          COALESCE(payment_month, '')
+        )
+      ) AS months_paid,
+      COALESCE(SUM(amount), 0) AS total_amount,
+      COALESCE(SUM(paid_amount), 0) AS total_paid,
+      COALESCE(SUM(amount - paid_amount), 0) AS total_balance
+    FROM fees
+    WHERE student_id = ?
+    GROUP BY student_id
+  `;
+
+  db.query(sql, [student_id], (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({
+        message: "Failed to fetch student fee summary",
+        error: err.message,
+      });
+    }
+
+    if (results.length === 0) {
+      return res.status(200).json({
+        student_id: Number(student_id),
+        payment_records: 0,
+        months_paid: 0,
+        total_amount: 0,
+        total_paid: 0,
+        total_balance: 0,
+      });
+    }
+
+    res.status(200).json(results[0]);
+  });
+};
+
 // Create fee
 const createFee = (req, res) => {
   const {
@@ -51,6 +96,8 @@ const createFee = (req, res) => {
     amount,
     paid_amount,
     payment_date,
+    payment_month,
+    payment_year,
     payment_method,
     status,
     description,
@@ -63,11 +110,13 @@ const createFee = (req, res) => {
       amount,
       paid_amount,
       payment_date,
+      payment_month,
+      payment_year,
       payment_method,
       status,
       description
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const values = [
@@ -75,6 +124,8 @@ const createFee = (req, res) => {
     amount,
     paid_amount,
     payment_date,
+    payment_month,
+    payment_year,
     payment_method,
     status,
     description,
@@ -83,7 +134,6 @@ const createFee = (req, res) => {
   db.query(sql, values, (err, result) => {
     if (err) {
       console.error(err);
-
       return res.status(500).json({
         message: "Failed to create fee",
         error: err.message,
@@ -106,6 +156,8 @@ const updateFee = (req, res) => {
     amount,
     paid_amount,
     payment_date,
+    payment_month,
+    payment_year,
     payment_method,
     status,
     description,
@@ -118,6 +170,8 @@ const updateFee = (req, res) => {
       amount = ?,
       paid_amount = ?,
       payment_date = ?,
+      payment_month = ?,
+      payment_year = ?,
       payment_method = ?,
       status = ?,
       description = ?
@@ -129,6 +183,8 @@ const updateFee = (req, res) => {
     amount,
     paid_amount,
     payment_date,
+    payment_month,
+    payment_year,
     payment_method,
     status,
     description,
@@ -138,7 +194,6 @@ const updateFee = (req, res) => {
   db.query(sql, values, (err, result) => {
     if (err) {
       console.error(err);
-
       return res.status(500).json({
         message: "Failed to update fee",
         error: err.message,
@@ -166,7 +221,6 @@ const deleteFee = (req, res) => {
   db.query(sql, [id], (err, result) => {
     if (err) {
       console.error(err);
-
       return res.status(500).json({
         message: "Failed to delete fee",
         error: err.message,
@@ -188,6 +242,7 @@ const deleteFee = (req, res) => {
 module.exports = {
   getFees,
   getFeeById,
+  getStudentFeeSummary,
   createFee,
   updateFee,
   deleteFee,

@@ -1,0 +1,43 @@
+{
+  "app": {
+    "name": "School Management System",
+    "dashboard": "Dashboard",
+    "students": "Students",
+    "teachers": "Teachers",
+    "classes": "Classes",
+    "subjects": "Subjects",
+    "attendance": "Attendance",
+    "exams": "Exams",
+    "results": "Results",
+    "fees": "Fees",
+    "notices": "Notices",
+    "users": "Users",
+    "login": "Login",
+    "logout": "Logout",
+    "save": "Save",
+    "update": "Update",
+    "delete": "Delete",
+    "search": "Search",
+    "cancel": "Cancel"
+  },
+
+  "student": {
+    "title": "Students",
+    "subtitle": "Manage school students",
+    "add": "Add Student",
+    "loading": "Loading students...",
+    "noStudents": "No students found",
+    "code": "Student Code",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "gender": "Gender",
+    "phone": "Phone",
+    "address": "Address",
+    "actions": "Actions"
+  },
+
+  "language": {
+    "oromo": "Afaan Oromoo",
+    "english": "English"
+  }
+}

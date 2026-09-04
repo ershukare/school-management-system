@@ -33,6 +33,8 @@ const userRoutes = require("./routes/userRoutes");
 
 const authRoutes = require("./routes/authRoutes");
 
+const dashboardRoutes = require("./routes/dashboardRoutes");
+
 app.use("/api/students", studentRoutes);
 
 app.use("/api/teachers", teacherRoutes);
@@ -56,6 +58,8 @@ app.use("/api/teacher-subjects", teacherSubjectRoutes);
 app.use("/api/users", userRoutes);
 
 app.use("/api/auth", authRoutes);
+
+app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/", (req, res) => {
   res.json({
