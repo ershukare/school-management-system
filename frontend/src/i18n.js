@@ -15,8 +15,10 @@ i18n
         translation: om,
       },
     },
+
     lng: "om",
     fallbackLng: "en",
+
     interpolation: {
       escapeValue: false,
     },

@@ -2,7 +2,40 @@ const db = require("../config/db");
 
 // Get all exams
 const getExams = (req, res) => {
-  const sql = "SELECT * FROM exams ORDER BY exam_date DESC";
+  const sql = `
+    SELECT
+      e.id,
+      e.name,
+      e.class_id,
+      e.subject_id,
+      e.teacher_id,
+      e.exam_type,
+      e.exam_date,
+      e.academic_year,
+      e.created_at,
+
+      c.name AS class_name,
+      c.section AS class_section,
+
+      s.name AS subject_name,
+
+      t.teacher_code,
+      t.first_name AS teacher_first_name,
+      t.last_name AS teacher_last_name
+
+    FROM exams e
+
+    LEFT JOIN classes c
+      ON e.class_id = c.id
+
+    LEFT JOIN subjects s
+      ON e.subject_id = s.id
+
+    LEFT JOIN teachers t
+      ON e.teacher_id = t.id
+
+    ORDER BY e.exam_date DESC
+  `;
 
   db.query(sql, (err, results) => {
     if (err) {
@@ -22,7 +55,40 @@ const getExams = (req, res) => {
 const getExamById = (req, res) => {
   const { id } = req.params;
 
-  const sql = "SELECT * FROM exams WHERE id = ?";
+  const sql = `
+    SELECT
+      e.id,
+      e.name,
+      e.class_id,
+      e.subject_id,
+      e.teacher_id,
+      e.exam_type,
+      e.exam_date,
+      e.academic_year,
+      e.created_at,
+
+      c.name AS class_name,
+      c.section AS class_section,
+
+      s.name AS subject_name,
+
+      t.teacher_code,
+      t.first_name AS teacher_first_name,
+      t.last_name AS teacher_last_name
+
+    FROM exams e
+
+    LEFT JOIN classes c
+      ON e.class_id = c.id
+
+    LEFT JOIN subjects s
+      ON e.subject_id = s.id
+
+    LEFT JOIN teachers t
+      ON e.teacher_id = t.id
+
+    WHERE e.id = ?
+  `;
 
   db.query(sql, [id], (err, results) => {
     if (err) {
@@ -48,6 +114,9 @@ const getExamById = (req, res) => {
 const createExam = (req, res) => {
   const {
     name,
+    class_id,
+    subject_id,
+    teacher_id,
     exam_type,
     exam_date,
     academic_year,
@@ -57,15 +126,21 @@ const createExam = (req, res) => {
     INSERT INTO exams
     (
       name,
+      class_id,
+      subject_id,
+      teacher_id,
       exam_type,
       exam_date,
       academic_year
     )
-    VALUES (?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
   const values = [
     name,
+    class_id,
+    subject_id,
+    teacher_id,
     exam_type,
     exam_date,
     academic_year,
@@ -94,6 +169,9 @@ const updateExam = (req, res) => {
 
   const {
     name,
+    class_id,
+    subject_id,
+    teacher_id,
     exam_type,
     exam_date,
     academic_year,
@@ -103,6 +181,9 @@ const updateExam = (req, res) => {
     UPDATE exams
     SET
       name = ?,
+      class_id = ?,
+      subject_id = ?,
+      teacher_id = ?,
       exam_type = ?,
       exam_date = ?,
       academic_year = ?
@@ -111,6 +192,9 @@ const updateExam = (req, res) => {
 
   const values = [
     name,
+    class_id,
+    subject_id,
+    teacher_id,
     exam_type,
     exam_date,
     academic_year,

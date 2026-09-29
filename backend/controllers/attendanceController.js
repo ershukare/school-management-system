@@ -2,12 +2,21 @@ const db = require("../config/db");
 
 // Get all attendance records
 const getAttendance = (req, res) => {
-  const sql = "SELECT * FROM attendance ORDER BY date DESC";
+  const sql = `
+    SELECT
+      attendance.*,
+      teachers.teacher_code,
+      teachers.first_name AS teacher_first_name,
+      teachers.last_name AS teacher_last_name
+    FROM attendance
+    LEFT JOIN teachers
+      ON attendance.teacher_id = teachers.id
+    ORDER BY attendance.date DESC
+  `;
 
   db.query(sql, (err, results) => {
     if (err) {
       console.error(err);
-
       return res.status(500).json({
         message: "Failed to fetch attendance",
         error: err.message,
@@ -22,12 +31,21 @@ const getAttendance = (req, res) => {
 const getAttendanceById = (req, res) => {
   const { id } = req.params;
 
-  const sql = "SELECT * FROM attendance WHERE id = ?";
+  const sql = `
+    SELECT
+      attendance.*,
+      teachers.teacher_code,
+      teachers.first_name AS teacher_first_name,
+      teachers.last_name AS teacher_last_name
+    FROM attendance
+    LEFT JOIN teachers
+      ON attendance.teacher_id = teachers.id
+    WHERE attendance.id = ?
+  `;
 
   db.query(sql, [id], (err, results) => {
     if (err) {
       console.error(err);
-
       return res.status(500).json({
         message: "Failed to fetch attendance",
         error: err.message,
@@ -48,6 +66,7 @@ const getAttendanceById = (req, res) => {
 const createAttendance = (req, res) => {
   const {
     student_id,
+    teacher_id,
     date,
     status,
     remarks,
@@ -57,15 +76,17 @@ const createAttendance = (req, res) => {
     INSERT INTO attendance
     (
       student_id,
+      teacher_id,
       date,
       status,
       remarks
     )
-    VALUES (?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?)
   `;
 
   const values = [
     student_id,
+    teacher_id,
     date,
     status,
     remarks,
@@ -74,7 +95,6 @@ const createAttendance = (req, res) => {
   db.query(sql, values, (err, result) => {
     if (err) {
       console.error(err);
-
       return res.status(500).json({
         message: "Failed to create attendance",
         error: err.message,
@@ -94,6 +114,7 @@ const updateAttendance = (req, res) => {
 
   const {
     student_id,
+    teacher_id,
     date,
     status,
     remarks,
@@ -103,6 +124,7 @@ const updateAttendance = (req, res) => {
     UPDATE attendance
     SET
       student_id = ?,
+      teacher_id = ?,
       date = ?,
       status = ?,
       remarks = ?
@@ -111,6 +133,7 @@ const updateAttendance = (req, res) => {
 
   const values = [
     student_id,
+    teacher_id,
     date,
     status,
     remarks,
@@ -120,7 +143,6 @@ const updateAttendance = (req, res) => {
   db.query(sql, values, (err, result) => {
     if (err) {
       console.error(err);
-
       return res.status(500).json({
         message: "Failed to update attendance",
         error: err.message,
@@ -148,7 +170,6 @@ const deleteAttendance = (req, res) => {
   db.query(sql, [id], (err, result) => {
     if (err) {
       console.error(err);
-
       return res.status(500).json({
         message: "Failed to delete attendance",
         error: err.message,

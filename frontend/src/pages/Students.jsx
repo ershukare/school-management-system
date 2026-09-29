@@ -1,13 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 function Students() {
   const { t } = useTranslation();
 
-  const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const getToday = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
 
   const emptyForm = {
     student_code: "",
@@ -18,14 +22,19 @@ function Students() {
     phone: "",
     address: "",
     class_id: "",
-    admission_date: "",
+    admission_date: getToday(),
   };
 
+  const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
 
-  // =========================
-  // GET STUDENTS
-  // =========================
+  const [selectedClassId, setSelectedClassId] = useState("");
+
   const loadStudents = async () => {
     try {
       setLoading(true);
@@ -37,25 +46,77 @@ function Students() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to load students");
+        throw new Error(
+          data.message || t("student.loadError")
+        );
       }
 
       setStudents(data);
     } catch (error) {
       console.error("Students data error:", error);
-      alert(`Students loading failed: ${error.message}`);
+
+      alert(
+        `${t("student.loadingFailed")}\n\n${error.message}`
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadStudents();
-  }, []);
+  const loadClasses = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/classes"
+      );
 
-  // =========================
-  // INPUT CHANGE
-  // =========================
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || t("student.classLoadError")
+        );
+      }
+
+      setClasses(data);
+    } catch (error) {
+      console.error("Classes data error:", error);
+
+      alert(
+        `${t("student.classesLoadingFailed")}\n\n${error.message}`
+      );
+    }
+  };
+
+useEffect(() => {
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  loadStudents();
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  loadClasses();
+}, []);
+
+  const sortedClasses = useMemo(() => {
+    return [...classes].sort((a, b) => {
+      const gradeA = parseInt(
+        String(a.name).replace(/\D/g, ""),
+        10
+      );
+
+      const gradeB = parseInt(
+        String(b.name).replace(/\D/g, ""),
+        10
+      );
+
+      if (gradeA !== gradeB) {
+        return gradeA - gradeB;
+      }
+
+      return String(a.section).localeCompare(
+        String(b.section)
+      );
+    });
+  }, [classes]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -65,109 +126,180 @@ function Students() {
     }));
   };
 
-  // =========================
-  // CREATE STUDENT
-  // =========================
+  const handleAddStudent = () => {
+    setEditingId(null);
+
+    setFormData({
+      ...emptyForm,
+      admission_date: getToday(),
+    });
+
+    setShowForm(true);
+  };
+
+  const handleEdit = (student) => {
+    setEditingId(student.id);
+
+    setFormData({
+      student_code: student.student_code || "",
+      first_name: student.first_name || "",
+      last_name: student.last_name || "",
+      gender: student.gender || "Male",
+
+      date_of_birth: student.date_of_birth
+        ? student.date_of_birth.substring(0, 10)
+        : "",
+
+      phone: student.phone || "",
+      address: student.address || "",
+
+      class_id: student.class_id
+        ? String(student.class_id)
+        : "",
+
+      admission_date: student.admission_date
+        ? student.admission_date.substring(0, 10)
+        : getToday(),
+    });
+
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
     if (!formData.student_code.trim()) {
-      alert("Please enter Student Code");
+      alert(t("student.enterStudentCode"));
       return;
     }
 
     if (!formData.first_name.trim()) {
-      alert("Please enter First Name");
+      alert(t("student.enterFirstName"));
       return;
     }
 
     if (!formData.last_name.trim()) {
-      alert("Please enter Last Name");
+      alert(t("student.enterLastName"));
       return;
+    }
+
+    if (!formData.class_id) {
+      alert(t("student.selectClassRequired"));
+      return;
+    }
+
+    // Guyyaa dhalootaa validation
+    if (formData.date_of_birth) {
+      const birthDate = formData.date_of_birth;
+      const year = birthDate.split("-")[0];
+
+      if (year.length !== 4) {
+        alert(t("student.invalidDateOfBirth"));
+        return;
+      }
     }
 
     try {
       setSaving(true);
 
-      // Prepare data for backend
       const payload = {
         student_code: formData.student_code.trim(),
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
+
         gender: formData.gender,
+
         date_of_birth:
           formData.date_of_birth === ""
             ? null
             : formData.date_of_birth,
+
         phone: formData.phone.trim(),
         address: formData.address.trim(),
-        class_id:
-          formData.class_id === ""
-            ? null
-            : Number(formData.class_id),
+
+        class_id: Number(formData.class_id),
+
         admission_date:
           formData.admission_date === ""
-            ? null
+            ? getToday()
             : formData.admission_date,
       };
 
-      console.log("Sending student:", payload);
+      console.log("Student payload:", payload);
 
-      const response = await fetch(
-        "http://localhost:5000/api/students",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const data = await response.json();
-
-      console.log("Server response:", data);
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to create student"
+      if (editingId) {
+        const response = await fetch(
+          `http://localhost:5000/api/students/${editingId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
         );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || t("student.updateError")
+          );
+        }
+
+        alert(t("student.updateSuccess"));
+      } else {
+        const response = await fetch(
+          "http://localhost:5000/api/students",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || t("student.createError")
+          );
+        }
+
+        alert(t("student.registerSuccess"));
       }
 
-      // Success
-      alert("Student created successfully!");
-
-      // Close form
       setShowForm(false);
+      setEditingId(null);
 
-      // Clear form
-      setFormData(emptyForm);
+      setFormData({
+        ...emptyForm,
+        admission_date: getToday(),
+      });
 
-      // Reload students
       await loadStudents();
     } catch (error) {
-      console.error("Create student error:", error);
+      console.error(
+        "Student save/update error:",
+        error
+      );
 
       alert(
-        `Student hin galme.\n\n${error.message}`
+        `${t("student.saveFailed")}\n\n${error.message}`
       );
     } finally {
       setSaving(false);
     }
   };
 
-  // =========================
-  // DELETE STUDENT
-  // =========================
   const handleDelete = async (id) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this student?"
+      t("student.confirmDelete")
     );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       const response = await fetch(
@@ -181,25 +313,59 @@ function Students() {
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Failed to delete student"
+          data.message || t("student.deleteError")
         );
       }
 
-      alert("Student deleted successfully!");
+      alert(t("student.deleteSuccess"));
 
       await loadStudents();
     } catch (error) {
-      console.error("Delete student error:", error);
+      console.error(
+        "Delete student error:",
+        error
+      );
 
       alert(
-        `Student haqaan hin dandeenye.\n\n${error.message}`
+        `${t("student.deleteFailed")}\n\n${error.message}`
       );
     }
   };
 
-  // =========================
-  // RENDER
-  // =========================
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingId(null);
+
+    setFormData({
+      ...emptyForm,
+      admission_date: getToday(),
+    });
+  };
+
+  const getStudentsForClass = (classId) => {
+    return students
+      .filter(
+        (student) =>
+          Number(student.class_id) === Number(classId)
+      )
+      .sort((a, b) => {
+        const nameA =
+          `${a.first_name || ""} ${a.last_name || ""}`.trim();
+
+        const nameB =
+          `${b.first_name || ""} ${b.last_name || ""}`.trim();
+
+        return nameA.localeCompare(nameB);
+      });
+  };
+
+  const getClassLabel = (classItem) => {
+    return `${String(classItem.name).replace(
+      "Grade ",
+      ""
+    )}${classItem.section}`;
+  };
+
   return (
     <div className="students-page">
 
@@ -212,26 +378,25 @@ function Students() {
 
         <button
           className="add-student-btn"
-          onClick={() => {
-            setFormData(emptyForm);
-            setShowForm(true);
-          }}
+          onClick={handleAddStudent}
         >
           + {t("student.add")}
         </button>
       </div>
 
-      {/* =========================
-          ADD STUDENT FORM
-      ========================= */}
+      {/* STUDENT REGISTRATION FORM */}
       {showForm && (
         <div className="students-card">
 
-          <h2>{t("student.add")}</h2>
+          <h2>
+            {editingId
+              ? t("student.updateStudent")
+              : t("student.add")}
+          </h2>
 
           <form onSubmit={handleSubmit}>
 
-            {/* Student Code */}
+            {/* STUDENT CODE */}
             <div>
               <label>{t("student.code")}</label>
 
@@ -240,12 +405,14 @@ function Students() {
                 name="student_code"
                 value={formData.student_code}
                 onChange={handleChange}
-                placeholder="STU002"
+                placeholder={t(
+                  "student.codePlaceholder"
+                )}
                 required
               />
             </div>
 
-            {/* First Name */}
+            {/* FIRST NAME */}
             <div>
               <label>{t("student.firstName")}</label>
 
@@ -254,12 +421,14 @@ function Students() {
                 name="first_name"
                 value={formData.first_name}
                 onChange={handleChange}
-                placeholder="Abebe"
+                placeholder={t(
+                  "student.firstNamePlaceholder"
+                )}
                 required
               />
             </div>
 
-            {/* Last Name */}
+            {/* LAST NAME */}
             <div>
               <label>{t("student.lastName")}</label>
 
@@ -268,12 +437,14 @@ function Students() {
                 name="last_name"
                 value={formData.last_name}
                 onChange={handleChange}
-                placeholder="Kebede"
+                placeholder={t(
+                  "student.lastNamePlaceholder"
+                )}
                 required
               />
             </div>
 
-            {/* Gender */}
+            {/* GENDER */}
             <div>
               <label>{t("student.gender")}</label>
 
@@ -282,24 +453,33 @@ function Students() {
                 value={formData.gender}
                 onChange={handleChange}
               >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
+                <option value="Male">
+                  {t("student.male")}
+                </option>
+
+                <option value="Female">
+                  {t("student.female")}
+                </option>
               </select>
             </div>
 
-            {/* Date of Birth */}
+            {/* DATE OF BIRTH */}
             <div>
-              <label>Date of Birth</label>
+              <label>
+                {t("student.dateOfBirth")}
+              </label>
 
               <input
                 type="date"
                 name="date_of_birth"
                 value={formData.date_of_birth}
                 onChange={handleChange}
+                min="1900-01-01"
+                max={getToday()}
               />
             </div>
 
-            {/* Phone */}
+            {/* PHONE */}
             <div>
               <label>{t("student.phone")}</label>
 
@@ -308,11 +488,13 @@ function Students() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="0912345678"
+                placeholder={t(
+                  "student.phonePlaceholder"
+                )}
               />
             </div>
 
-            {/* Address */}
+            {/* ADDRESS */}
             <div>
               <label>{t("student.address")}</label>
 
@@ -321,37 +503,52 @@ function Students() {
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                placeholder="Holota"
+                placeholder={t(
+                  "student.addressPlaceholder"
+                )}
               />
             </div>
 
-            {/* Class ID */}
+            {/* CLASS */}
             <div>
-              <label>Class ID</label>
+              <label>{t("student.class")}</label>
 
-              <input
-                type="number"
+              <select
                 name="class_id"
                 value={formData.class_id}
                 onChange={handleChange}
-                placeholder="1"
-                min="1"
-              />
+                required
+              >
+                <option value="">
+                  {t("student.selectClass")}
+                </option>
+
+                {sortedClasses.map((classItem) => (
+                  <option
+                    key={classItem.id}
+                    value={classItem.id}
+                  >
+                    {getClassLabel(classItem)}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Admission Date */}
+            {/* ADMISSION DATE */}
             <div>
-              <label>Admission Date</label>
+              <label>
+                {t("student.admissionDate")}
+              </label>
 
               <input
                 type="date"
                 name="admission_date"
                 value={formData.admission_date}
-                onChange={handleChange}
+                readOnly
               />
             </div>
 
-            {/* BUTTONS */}
+            {/* FORM BUTTONS */}
             <div className="form-buttons">
 
               <button
@@ -359,114 +556,277 @@ function Students() {
                 className="add-student-btn"
                 disabled={saving}
               >
-                {saving ? "Saving..." : t("app.save")}
+                {saving
+                  ? t("student.registering")
+                  : editingId
+                  ? t("student.saveUpdate")
+                  : t("student.register")}
               </button>
 
               <button
                 type="button"
                 className="delete-btn"
-                onClick={() => {
-                  setShowForm(false);
-                  setFormData(emptyForm);
-                }}
+                onClick={handleCancel}
                 disabled={saving}
               >
                 {t("app.cancel")}
               </button>
 
             </div>
-
           </form>
         </div>
       )}
 
-      {/* =========================
-          STUDENT LIST
-      ========================= */}
-      <div className="students-card">
-
-        {loading ? (
+      {/* LOADING */}
+      {loading ? (
+        <div className="students-card">
           <p className="loading">
             {t("student.loading")}
           </p>
-        ) : students.length === 0 ? (
+        </div>
+
+      ) : students.length === 0 ? (
+
+        /* NO STUDENTS */
+        <div className="students-card">
           <p className="empty-state">
             {t("student.noStudents")}
           </p>
-        ) : (
-          <div className="table-container">
+        </div>
 
-            <table className="students-table">
+      ) : (
 
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>{t("student.code")}</th>
-                  <th>{t("student.firstName")}</th>
-                  <th>{t("student.lastName")}</th>
-                  <th>{t("student.gender")}</th>
-                  <th>{t("student.phone")}</th>
-                  <th>{t("student.address")}</th>
-                  <th>{t("student.actions")}</th>
-                </tr>
-              </thead>
+        <div>
 
-              <tbody>
-                {students.map((student) => (
-                  <tr key={student.id}>
+          {/* CLASS FILTER */}
+          <div className="students-card">
 
-                    <td>{student.id}</td>
+            <div className="class-selector">
 
-                    <td className="student-code">
-                      {student.student_code}
-                    </td>
+              <label>
+                {t("student.selectClassLabel")}
+              </label>
 
-                    <td>{student.first_name}</td>
+              <select
+                value={selectedClassId}
+                onChange={(e) =>
+                  setSelectedClassId(e.target.value)
+                }
+              >
+                <option value="">
+                  {t("student.allClasses")}
+                </option>
 
-                    <td>{student.last_name}</td>
-
-                    <td>{student.gender}</td>
-
-                    <td>
-                      {student.phone || "-"}
-                    </td>
-
-                    <td>
-                      {student.address || "-"}
-                    </td>
-
-                    <td>
-                      <div className="action-buttons">
-
-                        <button
-                          className="edit-btn"
-                          type="button"
-                        >
-                          {t("app.update")}
-                        </button>
-
-                        <button
-                          className="delete-btn"
-                          type="button"
-                          onClick={() =>
-                            handleDelete(student.id)
-                          }
-                        >
-                          {t("app.delete")}
-                        </button>
-
-                      </div>
-                    </td>
-
-                  </tr>
+                {sortedClasses.map((classItem) => (
+                  <option
+                    key={classItem.id}
+                    value={classItem.id}
+                  >
+                    {getClassLabel(classItem)}
+                  </option>
                 ))}
-              </tbody>
+              </select>
 
-            </table>
+            </div>
           </div>
-        )}
 
-      </div>
+          {/* CLASS STUDENTS */}
+          {sortedClasses
+            .filter((classItem) => {
+              if (!selectedClassId) {
+                return true;
+              }
+
+              return (
+                Number(classItem.id) ===
+                Number(selectedClassId)
+              );
+            })
+            .map((classItem) => {
+
+              const classStudents =
+                getStudentsForClass(classItem.id);
+
+              return (
+                <div
+                  className="students-card"
+                  key={classItem.id}
+                >
+
+                  {/* CLASS NAME */}
+                  <h2>
+                    {getClassLabel(classItem)}
+                  </h2>
+
+                  {classStudents.length === 0 ? (
+
+                    <p className="empty-state">
+                      {t(
+                        "student.noStudentsInClass"
+                      )}
+                    </p>
+
+                  ) : (
+
+                    <div className="table-container">
+
+                      <table className="students-table">
+
+                        <thead>
+                          <tr>
+
+                            <th>
+                              {t("student.number")}
+                            </th>
+
+                            <th>
+                              {t("student.code")}
+                            </th>
+
+                            <th>
+                              {t("student.firstName")}
+                            </th>
+
+                            <th>
+                              {t("student.lastName")}
+                            </th>
+
+                            <th>
+                              {t("student.gender")}
+                            </th>
+
+                            <th>
+                              {t("student.dateOfBirth")}
+                            </th>
+
+                            <th>
+                              {t("student.phone")}
+                            </th>
+
+                            <th>
+                              {t("student.actions")}
+                            </th>
+
+                          </tr>
+                        </thead>
+
+                        <tbody>
+
+                          {classStudents.map(
+                            (student, index) => (
+
+                              <tr key={student.id}>
+
+                                {/* CLASS NUMBER */}
+                                <td>
+                                  {index + 1}
+                                </td>
+
+                                {/* STUDENT CODE */}
+                                <td className="student-code">
+                                  {
+                                    student.student_code
+                                  }
+                                </td>
+
+                                {/* FIRST NAME */}
+                                <td>
+                                  {
+                                    student.first_name
+                                  }
+                                </td>
+
+                                {/* LAST NAME */}
+                                <td>
+                                  {
+                                    student.last_name
+                                  }
+                                </td>
+
+                                {/* GENDER */}
+                                <td>
+                                  {student.gender ===
+                                  "Male"
+                                    ? t(
+                                        "student.male"
+                                      )
+                                    : t(
+                                        "student.female"
+                                      )}
+                                </td>
+
+                                {/* DATE OF BIRTH */}
+                                <td>
+                                  {student.date_of_birth
+                                    ? new Date(
+                                        student.date_of_birth
+                                      ).toLocaleDateString(
+                                        "en-GB"
+                                      )
+                                    : "-"}
+                                </td>
+
+                                {/* PHONE */}
+                                <td>
+                                  {student.phone ||
+                                    "-"}
+                                </td>
+
+                                {/* ACTIONS */}
+                                <td>
+
+                                  <div className="action-buttons">
+
+                                    <button
+                                      className="edit-btn"
+                                      type="button"
+                                      onClick={() =>
+                                        handleEdit(
+                                          student
+                                        )
+                                      }
+                                    >
+                                      {t(
+                                        "app.update"
+                                      )}
+                                    </button>
+
+                                    <button
+                                      className="delete-btn"
+                                      type="button"
+                                      onClick={() =>
+                                        handleDelete(
+                                          student.id
+                                        )
+                                      }
+                                    >
+                                      {t(
+                                        "app.delete"
+                                      )}
+                                    </button>
+
+                                  </div>
+
+                                </td>
+
+                              </tr>
+                            )
+                          )}
+
+                        </tbody>
+
+                      </table>
+
+                    </div>
+                  )}
+
+                </div>
+              );
+            })}
+
+        </div>
+      )}
+
     </div>
   );
 }

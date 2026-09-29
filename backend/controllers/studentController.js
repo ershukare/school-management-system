@@ -14,7 +14,9 @@ const getStudents = (req, res) => {
       students.address,
       students.admission_date,
       classes.name AS class_name,
+      students.class_id,
       classes.section
+      
     FROM students
     LEFT JOIN classes ON students.class_id = classes.id
     ORDER BY students.id DESC
